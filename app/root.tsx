@@ -1,19 +1,33 @@
 import { cssBundleHref } from "@remix-run/css-bundle";
-import type { LinksFunction } from "@remix-run/node";
+import type { LinksFunction, LoaderFunctionArgs } from "@remix-run/node";
 import {
+  Link,
   Links,
   LiveReload,
   Meta,
   Outlet,
   Scripts,
   ScrollRestoration,
+  json,
+  useLoaderData,
 } from "@remix-run/react";
+import { authenticator } from "./auth/authenticator";
 
 export const links: LinksFunction = () => [
   ...(cssBundleHref ? [{ rel: "stylesheet", href: cssBundleHref }] : []),
 ];
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  if (!request.url.includes("login")) {
+    await authenticator.isAuthenticated(request, {
+      failureRedirect: "/auth/login",
+    });
+    return json({ isAuthorized: true });
+  }
+  return json({ isAuthorized: false });
+};
 
 export default function App() {
+  const { isAuthorized } = useLoaderData<typeof loader>();
   return (
     <html lang="en">
       <head>
@@ -23,6 +37,7 @@ export default function App() {
         <Links />
       </head>
       <body>
+        {isAuthorized && <Link to="/logout">LOGOUT</Link>}
         <Outlet />
         <ScrollRestoration />
         <Scripts />
